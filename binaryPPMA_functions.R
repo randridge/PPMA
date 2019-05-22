@@ -4,15 +4,8 @@
 # Author: 
 # Rebecca Andridge (andridge.1@osu.edu)
 #
-# Version: May 15, 2019
+# Version: May 22 2019
 ####################################################################################
-
-# Libraries
-# require(mvtnorm)
-# require(msm)
-# require(boot)
-# require(coda)
-# require(MASS)
 
 #####################################################
 # ML (unmodified) estimate of mean of Y
