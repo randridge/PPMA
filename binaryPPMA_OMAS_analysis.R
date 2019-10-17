@@ -2,7 +2,7 @@
 # PPMA - BINARY Y
 # Using OMAS 2015 Data
 # Author: Rebecca R Andridge
-# Last Modified: 10/10/2019
+# Last Modified: 10/17/2019
 ####################################
 
 rm(list=ls())
@@ -89,6 +89,7 @@ m <- is.na(y)
 ############################
 # Calculate proxy X*, RHO, D
 ############################
+# These values (% missing, rho_0, and d*) are reported in the paper in the text and also on Figure 2 (top of plots)
 # Create proxy (and proxy transformed to probability scale) for MLEs
 x <- predict.glm(fit, type="link", newdata=dat)
 # Percent missing
@@ -112,6 +113,7 @@ H <- length(unique(dat$strata))
 ccWt$lb <- ccWt$mean - qt(0.025, N_obs-H, lower.tail=F)*ccWt$se
 ccWt$ub <- ccWt$mean + qt(0.025, N_obs-H, lower.tail=F)*ccWt$se
 rm(N_obs,H,ccest)
+# Print complete case estimates (plotted in the paper in Figure 2)
 ccWt
 
 ########################
@@ -120,9 +122,9 @@ ccWt
 # Perform multiple imputation with the binary PPM model
 # Result are matrices of imputed data (rows=subjects, columns=multiple imputations)
 # Note that these may take a while to run
-system.time({set.seed(5254772); mult0   <- mi(y,z,0,  TRUE,20,20,100)})
-system.time({set.seed(5254772); mult1   <- mi(y,z,1,  TRUE,20,20,100)})
-system.time({set.seed(5254772); multInf <- mi(y,z,Inf,TRUE,20,20,100)})
+system.time({set.seed(5254772); mult0   <- mi(y,z,phi=0,   TRUE,20,20,100)})
+system.time({set.seed(5254772); mult1   <- mi(y,z,phi=0.5, TRUE,20,20,100)})
+system.time({set.seed(5254772); multInf <- mi(y,z,phi=1,   TRUE,20,20,100)})
 
 # Function to calculate stats from MI data using sample design
 miStatsWts <- function(MIDATA, DESIGN)
@@ -147,5 +149,6 @@ temp <- as.data.frame(rbind(miStatsWts(mult0,omasdesign),
                             miStatsWts(multInf,omasdesign)))
 temp$se <- sqrt(temp$var)
 multWt <- subset(temp, select=c(mean,se,lb,ub,df,FMI))
+# Print MI PPMA estimates (plotted in the paper in Figure 2)
 multWt
 
