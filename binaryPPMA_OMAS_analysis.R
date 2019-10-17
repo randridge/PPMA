@@ -122,9 +122,9 @@ ccWt
 # Perform multiple imputation with the binary PPM model
 # Result are matrices of imputed data (rows=subjects, columns=multiple imputations)
 # Note that these may take a while to run
-system.time({set.seed(5254772); mult0   <- mi(y,z,phi=0,   TRUE,20,20,100)})
-system.time({set.seed(5254772); mult1   <- mi(y,z,phi=0.5, TRUE,20,20,100)})
-system.time({set.seed(5254772); multInf <- mi(y,z,phi=1,   TRUE,20,20,100)})
+system.time({set.seed(5254772); mult0   <- mi(y,z,phi=0,   drawphi=FALSE,D=20,burnin=20,thin=100)})
+system.time({set.seed(5254772); mult1   <- mi(y,z,phi=0.5, drawphi=FALSE,D=20,burnin=20,thin=100)})
+system.time({set.seed(5254772); multInf <- mi(y,z,phi=1,   drawphi=FALSE,D=20,burnin=20,thin=100)})
 
 # Function to calculate stats from MI data using sample design
 miStatsWts <- function(MIDATA, DESIGN)
