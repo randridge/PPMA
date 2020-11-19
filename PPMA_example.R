@@ -12,7 +12,7 @@ source("./PPMA_functions.R")
 #####################
 # Load sample data  #
 #####################
-dat <- read.csv("./ofhs.csv")
+dat <- read.csv("https://raw.githubusercontent.com/randridge/PPMA/master/exampledata/ofhs.csv")
 # Make categorical variables into factors
 dat$racecat <- factor(dat$racecat)
 dat$educcat <- factor(dat$educcat)
