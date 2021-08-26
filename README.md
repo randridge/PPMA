@@ -2,7 +2,7 @@
 
 R Code and examples supporting:
 
-Andridge and Little (2019, under revision), "Proxy Pattern-Mixture Analysis for a Binary Variable Subject to Nonresponse"
+Andridge and Little (2020, Journal of Official Statistics), "Proxy Pattern-Mixture Analysis for a Binary Variable Subject to Nonresponse"
 
 binaryPPMA_functions.R -- functions for performing binary PPMA
 
