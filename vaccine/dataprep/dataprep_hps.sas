@@ -1,0 +1,223 @@
+/* Prep HPS data	*/
+/* 7/24/2022 RA		*/
+
+options nodate nocenter nonumber ls=256 formdlim=" " formchar="|----|+|---+=|-/\<>*";
+
+libname w22 ".\data_HPS\HPS_Week22_PUF_SAS";
+libname w23 ".\data_HPS\HPS_Week23_PUF_SAS";
+libname w24 ".\data_HPS\HPS_Week24_PUF_SAS";
+libname w25 ".\data_HPS\HPS_Week25_PUF_SAS";
+libname w26 ".\data_HPS\HPS_Week26_PUF_SAS";
+libname w27 ".\data_HPS\HPS_Week27_PUF_SAS";
+libname w28 ".\data_HPS\HPS_Week28_PUF_SAS";
+libname w29 ".\data_HPS\HPS_Week29_PUF_SAS";
+data all(keep=SCRAM WEEK statefips state vaccinated vaccinated_nomiss vacstatus vacstatus_nomiss
+				male educcat educcat_coll educ_: racecat race_: hisp agecat age_: incomecat income_: incomemisscat incomemiss_: mscat ms_: PWEIGHT);
+set w22.Pulse2021_puf_22
+	w23.Pulse2021_puf_23
+	w24.Pulse2021_puf_24
+	w25.Pulse2021_puf_25
+	w26.Pulse2021_puf_26
+	w27.Pulse2021_puf_27
+	w28.Pulse2021_puf_28
+	w29.Pulse2021_puf_29;
+*state fips code;
+statefips = EST_ST;
+state = fipstate(statefips);
+*binary vaccination status (at least one dose);
+vaccinated = (RECVDVACC = 1); *puts -99=no answer and .M=missing/did not report as NOT VACCINATED;
+if RECVDVACC in(1,2) then vaccinated_nomiss = (RECVDVACC = 1); *puts -99=no answer and .M=missing/did not report as MISSING;
+*vaccinated/willingness/heitancy;
+if RECVDVACC = 1 then vacstatus = 1; *already vaccinated;
+	else if 22 <= WEEK <= 27 then do;
+		if GETVACC in(1,2) then vacstatus = 2; *willing (definitely, probably);
+			else vacstatus = 3; *hesitant (probably not, definitely not); *puts -99=no answer and .M=missing/did not report as HESITANT;
+	end;
+	else if 28 <= WEEK <= 29 then do;
+		if GETVACRV in(1,2) then vacstatus = 2; *willing (definitely, probably);
+			else vacstatus = 3; *hesitant (unsure, probably not, definitely not); *puts -99=no answer and .M=missing/did not report as HESITANT;
+	end;
+vacstatus_nomiss = vacstatus;
+if 22 <= WEEK <= 27 then do;
+	if RECVDVACC in(2,-99,.M) and GETVACC in(.M,-99) then vacstatus_nomiss = .; *puts -99=no answer and .M=missing/did not report as MISSING;
+end;
+else if 28 <= WEEK <= 29 then do;
+	if RECVDVACC in(2,-99,.M) and GETVACRV in(.M,-99) then vacstatus_nomiss = .; *puts -99=no answer and .M=missing/did not report as MISSING;
+end;
+*binary gender;
+male = (EGENDER = 1);
+*education;
+educ_lths = (EEDUC = 1);
+educ_somehs = (EEDUC = 2);
+educ_hs = (EEDUC = 3);
+educ_somecollnodeg = (EEDUC = 4);
+educ_assoc = (EEDUC = 5);
+educ_bach = (EEDUC = 6);
+educ_graddeg = (EEDUC = 7);
+educcat = EEDUC;
+*education levels collapsed;
+educ_hsless = (EEDUC in(1,2,3));
+educ_somecoll = (EEDUC in(4,5));
+educcat_coll = 1*educ_hsless + 2*educ_somecoll + 3*educ_bach + 4*educ_graddeg;
+*race;
+race_white = (RRACE = 1);
+race_black = (RRACE = 2);
+race_asian = (RRACE = 3);
+race_other = (RRACE = 4);
+racecat = RRACE;
+*ethnicity;
+hisp = (RHISPANIC = 2);
+*age;
+age = 2021 - TBIRTH_YEAR;
+age_18_29 = (18 <= age <= 29);
+age_30_39 = (30 <= age <= 39);
+age_40_49 = (40 <= age <= 49);
+age_50_59 = (50 <= age <= 59);
+age_60_69 = (60 <= age <= 69);
+age_70plus = (age >= 70);
+agecat = 1*age_18_29 + 2*age_30_39 + 3*age_40_49 + 4*age_50_59 + 5*age_60_69 + 6*age_70plus;
+*income;
+if INCOME not in(-99,.M) then do;
+	income_1 = (INCOME = 1);
+	income_2 = (INCOME = 2);
+	income_3 = (INCOME = 3);
+	income_4 = (INCOME = 4);
+	income_5 = (INCOME = 5);
+	income_6 = (INCOME = 6);
+	income_7 = (INCOME = 7);
+	income_8 = (INCOME = 8);
+end;
+incomecat = 1*income_1 + 2*income_2 + 3*income_3 + 4*income_4 + 5*income_5 + 6*income_6 + 7*income_7 + 8*income_8;
+*include missing income as a cateogory;
+incomemisscat = incomecat;
+if incomemisscat = . then incomemisscat = 0; *missing income;
+incomemiss_0 = (INCOME in(-99,.M));
+incomemiss_1 = (INCOME = 1);
+incomemiss_2 = (INCOME = 2);
+incomemiss_3 = (INCOME = 3);
+incomemiss_4 = (INCOME = 4);
+incomemiss_5 = (INCOME = 5);
+incomemiss_6 = (INCOME = 6);
+incomemiss_7 = (INCOME = 7);
+incomemiss_8 = (INCOME = 8);
+*marital status;
+if ms not in(-99,.M) then do;
+	ms_married = (ms = 1);
+	ms_widowed = (ms = 2);
+	ms_divorced = (ms = 3);
+	ms_separated = (ms = 4);
+	ms_single = (ms = 5);
+end;
+mscat = 1*ms_married + 2*ms_widowed + 3*ms_divorced + 4*ms_separated + 5*ms_single;
+run;
+*export microdata;
+proc export data=all(drop=SCRAM) outfile="./data_HPS/microdata_hps_wave22to29.csv" DBMS=CSV replace;
+run;
+data repweights(keep=SCRAM WEEK PWEIGHT:);
+set w22.Pulse2021_repwgt_puf_22
+	w23.Pulse2021_repwgt_puf_23
+	w24.Pulse2021_repwgt_puf_24
+	w25.Pulse2021_repwgt_puf_25
+	w26.Pulse2021_repwgt_puf_26
+	w27.Pulse2021_repwgt_puf_27
+	w28.Pulse2021_repwgt_puf_28
+	w29.Pulse2021_repwgt_puf_29;
+run;
+data all;
+merge all repweights;
+by WEEK SCRAM;
+run;
+*percent vaccinated - SEs using replicate weights;
+proc surveyfreq data=all;
+by WEEK;
+weight PWEIGHT;
+repweights PWEIGHT1-PWEIGHT80;
+tables vaccinated;
+ods output oneway=pct_vacc;
+run;
+proc export data=pct_vacc outfile="./results/hps_pct_vacc.csv" DBMS=CSV replace;
+run;
+*percent vaccinated - WITHOUT MISSINGS - SEs using replicate weights;
+proc surveyfreq data=all;
+by WEEK;
+weight PWEIGHT;
+repweights PWEIGHT1-PWEIGHT80;
+tables vaccinated_nomiss;
+ods output oneway=pct_vacc;
+run;
+proc export data=pct_vacc outfile="./results/hps_pct_vacc_nomiss.csv" DBMS=CSV replace;
+run;
+*3-level vaccination status - SEs using replicate weights;
+proc surveyfreq data=all;
+by WEEK;
+weight PWEIGHT;
+repweights PWEIGHT1-PWEIGHT80;
+tables vacstatus;
+ods output oneway=pct_vacstatus;
+run;
+proc export data=pct_vacstatus outfile="./results/hps_vacstatus.csv" DBMS=CSV replace;
+run;
+*3-level vaccination status - WITHOUT MISSINGS - SEs using replicate weights;
+proc surveyfreq data=all;
+by WEEK;
+weight PWEIGHT;
+repweights PWEIGHT1-PWEIGHT80;
+tables vacstatus_nomiss;
+ods output oneway=pct_vacstatus;
+run;
+proc export data=pct_vacstatus outfile="./results/hps_vacstatus_nomiss.csv" DBMS=CSV replace;
+run;
+
+*percent vaccinated by characteristics - SEs are wrong but only want to look at point estimates;
+proc surveyfreq data=all;
+by WEEK;
+weight PWEIGHT;
+*repweights PWEIGHT1-PWEIGHT80;
+tables (male educcat educcat_coll racecat hisp agecat incomemisscat mscat statefips)*vaccinated/ row cl nototal;
+ods output crosstabs=stats_wt;
+run;
+data stats(where=(vaccinated=1));
+length WEEK 8. variable $20. level 8. state $2.;
+set stats_wt;
+*pull varible name out from table description;
+variable = scan(table,-2);
+*collapse level of outcome into one variable;
+level = max(of male educcat educcat_coll racecat hisp agecat incomemisscat mscat statefips);
+if variable = "statefips" then state = fipstate(level);
+*convert percentages into decimals;
+pct = RowPercent/100;
+pctSE = RowStdErr/100;
+pctLB = RowLowerCL/100;
+pctUB = RowUpperCL/100;
+keep week variable level state vaccinated frequency WgtFreq pct:;
+format _NUMERIC_;
+run;
+proc export data=stats outfile="./results/hps_pct_vacc_by_demog.csv" DBMS=CSV replace;
+run;
+
+*percent vaccinated NO MISSINGS by characteristics - SEs are wrong but only want to look at point estimates;
+proc surveyfreq data=all;
+by WEEK;
+weight PWEIGHT;
+*repweights PWEIGHT1-PWEIGHT80;
+tables (male educcat educcat_coll racecat hisp agecat incomemisscat mscat statefips)*vaccinated_nomiss/ row cl nototal;
+ods output crosstabs=stats_wt;
+run;
+data stats(where=(vaccinated_nomiss=1));
+length WEEK 8. variable $20. level 8. state $2.;
+set stats_wt;
+*pull varible name out from table description;
+variable = scan(table,-2);
+*collapse level of outcome into one variable;
+level = max(of male educcat educcat_coll racecat hisp agecat incomemisscat mscat statefips);
+if variable = "statefips" then state = fipstate(level);
+*convert percentages into decimals;
+pct = RowPercent/100;
+pctSE = RowStdErr/100;
+pctLB = RowLowerCL/100;
+pctUB = RowUpperCL/100;
+keep week variable level state vaccinated_nomiss frequency WgtFreq pct:;
+format _NUMERIC_;
+run;
+proc export data=stats outfile="./results/hps_pct_vacc_nomiss_by_demog.csv" DBMS=CSV replace;
+run;
