@@ -1,0 +1,11 @@
+Datasets for PPMM analysis
+
+Files:
+
+For Census HPS analyses (used in estimate_vaccinated_hps.R and estimate_hesitant_hps.R)
+microdata_hps_wave22to29.csv = Census HPS microdata
+acs_covmat_hps.csv = Mean vector and covariance matrix for population-level data, from 2019 ACS
+
+For Delphi-Facebook CTIS analyses (used in estimate_vaccinated_hps.R and estimate_hesitant_hps.R)
+acs_covmat_facebook.csv = Mean vector and covariance matrix for population-level data, from 2019 ACS
+**microdata_facebook_week2to18.csv** NOT AVAILABLE (cannot be publicly shared) but code to prep the data is available in the dataprep folder
