@@ -3,7 +3,7 @@ Datasets for PPMM analysis
 Files:
 
 For Census HPS analyses (used in estimate_vaccinated_hps.R and estimate_hesitant_hps.R)
-microdata_hps_wave22to29.csv = Census HPS microdata
+microdata_hps_wave22to29.csv (uploaded in compressed form) = Census HPS microdata
 acs_covmat_hps.csv = Mean vector and covariance matrix for population-level data, from 2019 ACS
 
 For Delphi-Facebook CTIS analyses (used in estimate_vaccinated_hps.R and estimate_hesitant_hps.R)
