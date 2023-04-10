@@ -1,0 +1,16 @@
+SAS and R files that prep data for analysis
+
+Prep Census HPS microdata:
+dataprep_hps.sas
+Uses datafiles downloaded from: https://www.census.gov/programs-surveys/household-pulse-survey/datasets.html
+Publicly available (no login required)
+
+Prep Delphi-Facebook microdata:
+dataprep_Facebook.R
+Uses datafiles obtained under data use agreement, see https://delphi.cmu.edu/covid19/ctis/
+Not publicly available
+
+Population-level mean/covariances from ACS:
+dataprep_acs.sas
+Uses datafiles downloaded from: https://usa.ipums.org/usa/
+Requires sign-up/login to download
