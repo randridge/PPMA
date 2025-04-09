@@ -1,11 +1,7 @@
 # PPMA
 
-R Code and examples supporting:
+R Code and examples supporting various papers that develop and implement Proxy Pattern-Mixture Analysis (PPMA):
 
-Andridge and Little (2020, Journal of Official Statistics), "Proxy Pattern-Mixture Analysis for a Binary Variable Subject to Nonresponse"
+Andridge, R. R., & Little, R. J. (2020). Proxy pattern-mixture analysis for a binary variable subject to nonresponse. Journal of Official Statistics, 36(3), 703-728. -- "binaryPPMA" folder
 
-binaryPPMA_functions.R -- functions for performing binary PPMA
-
-binaryPPMA_example.R -- shows how to use the functions to implement PPMA on the sample data
-
-binaryPPMA_OMAS_analysis.R -- code to analyze the 2015 OMAS data as in the paper (uses CSV data in the "omasdata" folder)
+Andridge, R. R. (2024). Using proxy pattern-mixture models to explain bias in estimates of COVID-19 vaccine uptake from two large surveys. Journal of the Royal Statistical Society Series A: Statistics in Society, 187(3), 831-843. -- "vaccine" folder
