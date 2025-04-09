@@ -1,0 +1,203 @@
+---
+title: "Simulation - Plots - Proxy Strength"
+author: "Rebecca Andridge"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=FALSE, warning=FALSE, message=FALSE, out.width='100%', fig.asp=.75)
+library(tidyverse)
+theme_set(theme_bw())
+
+# load results -----
+load("./simdata/simParms.RData")
+load("./simresults/simSummary_proxystrength_mle.RData")
+load("./simresults/simSummary_proxystrength_bayes.RData")
+
+parms <- parms %>% 
+  mutate(S2_f = factor(S2, levels = c(13,4,1), labels = c("Weak proxy", "Moderate proxy", "Strong proxy")),
+         effectmod = factor(effectmod,
+                            levels = c("EM{U}", "EM{Z,U}", "EM{Z,W,U}")),
+         selection = factor(selection, 
+                            levels = c("SEL{U}", "SEL{Z,U}", "SEL{Z,W,U}", "SEL{Z,-U}", "SEL{Z,W,-U}")))
+
+mle_proxystrength <- parms %>% 
+  inner_join(mle_proxystrength) %>%
+  add_column(estimator = "MLE")
+
+bayes_proxystrength <- parms %>% 
+  inner_join(bayes_proxystrength) %>%
+  add_column(estimator = "Bayes")
+
+proxystrength <- bind_rows(mle_proxystrength, bayes_proxystrength)
+
+rm(mle_proxystrength, bayes_proxystrength, parms)
+
+# Make long (placebo and control stacked)
+
+long <- proxystrength %>%
+  select(simset, selection, effectmod, CORR_U_W, S2, estimator, rho_XY_s_A1, rho_XY_s_A0) %>%
+  pivot_longer(cols = c(rho_XY_s_A1, rho_XY_s_A0), values_to = "rho", names_to = "group") %>%
+  mutate(group_name = case_when(group == "rho_XY_s_A0" ~ "Placebo",
+                                group == "rho_XY_s_A1" ~ "Treatment")) %>%
+  mutate(S2_f = factor(S2, levels = c(1,4,13), labels=c("strong proxy", "moderate proxy", "weak proxy"))) %>%
+  select(-group)
+long_lb <- proxystrength %>%
+  select(simset, estimator, lb_rho_XY_s_A1, lb_rho_XY_s_A0) %>%
+  pivot_longer(cols = c(lb_rho_XY_s_A1, lb_rho_XY_s_A0), values_to = "min_rho", names_to = "group") %>%
+  mutate(group_name = case_when(group == "lb_rho_XY_s_A0" ~ "Placebo",
+                                group == "lb_rho_XY_s_A1" ~ "Treatment")) %>%
+  select(-group)
+long_ub <- proxystrength %>%
+  select(simset, estimator, ub_rho_XY_s_A1, ub_rho_XY_s_A0) %>%
+  pivot_longer(cols = c(ub_rho_XY_s_A1, ub_rho_XY_s_A0), values_to = "max_rho", names_to = "group") %>%
+  mutate(group_name = case_when(group == "ub_rho_XY_s_A0" ~ "Placebo",
+                                group == "ub_rho_XY_s_A1" ~ "Treatment")) %>%
+  select(-group)
+long <- inner_join(long, long_lb) %>% inner_join(long_ub)
+```
+
+## Proxy Strength - MLEs
+
+```{r}
+# average across other parameter combinations (besides sigma^2)
+long %>%
+  filter(estimator == "MLE") %>%
+  group_by(S2, group_name) %>%
+  summarize(mean_rho = mean(rho)) %>%
+  pivot_wider(names_from = group_name, values_from = mean_rho) %>%
+  kableExtra::kbl(digits = c(0,2,2)) %>%
+  kableExtra::kable_classic()
+```
+
+
+```{r}
+pd <- position_dodge(0.5)
+long %>%
+  filter(estimator == "MLE") %>%
+  ggplot(aes(x=factor(CORR_U_W), y=rho, shape=group_name, color=S2_f)) + 
+  geom_point(size=0.7, position=pd) +
+  scale_shape_discrete(solid = FALSE) + 
+  facet_grid(effectmod ~ selection) + 
+  labs(x="Cor(W,U)", y="Proxy Strength", color="", shape="") + 
+  theme(legend.position="top") + 
+  coord_cartesian(ylim=c(0,1))
+```
+
+## Proxy Strength - Bayes
+
+```{r}
+# average across other parameter combinations (besides sigma^2)
+long %>%
+  filter(estimator == "Bayes") %>%
+  group_by(S2, group_name) %>%
+  summarize(mean_rho = mean(rho)) %>%
+  pivot_wider(names_from = group_name, values_from = mean_rho) %>%
+  kableExtra::kbl(digits = c(0,2,2)) %>%
+  kableExtra::kable_classic()
+```
+
+```{r}
+pd <- position_dodge(0.5)
+long %>%
+  filter(estimator == "Bayes") %>%
+  ggplot(aes(x=factor(CORR_U_W), y=rho, shape=group_name, color=S2_f)) + 
+  geom_point(size=0.7, position=pd) +
+  scale_shape_discrete(solid = FALSE) + 
+  facet_grid(effectmod ~ selection) + 
+  labs(x="Cor(W,U)", y="Proxy Strength", color="", shape="") + 
+  theme(legend.position="top") + 
+  coord_cartesian(ylim=c(0,1))
+```
+
+## Proxy Strength - MLE - with (2.5th, 97.5th Pctls) across replicates
+
+```{r}
+pd <- position_dodge(0.5)
+long %>%
+  filter(estimator == "MLE") %>%
+  ggplot(aes(x=factor(CORR_U_W), y=rho, shape=group_name, color=S2_f)) + 
+  geom_point(size=0.7, position=pd) +
+  scale_shape_discrete(solid = FALSE) + 
+  geom_errorbar(aes(ymin = min_rho, ymax = max_rho), position = pd, width=0.2) +
+  facet_grid(effectmod ~ selection) + 
+  labs(x="Cor(W,U)", y="Proxy Strength", color="", shape="") + 
+  theme(legend.position="top") + 
+  coord_cartesian(ylim=c(0,1))
+```
+
+## Proxy Strength - Bayes - with (2.5th, 97.5th Pctls) across replicates
+
+```{r}
+pd <- position_dodge(0.5)
+long %>%
+  filter(estimator == "Bayes") %>%
+  ggplot(aes(x=factor(CORR_U_W), y=rho, shape=group_name, color=S2_f)) + 
+  geom_point(size=0.7, position=pd) +
+  scale_shape_discrete(solid = FALSE) + 
+  geom_errorbar(aes(ymin = min_rho, ymax = max_rho), position = pd, width=0.2) +
+  facet_grid(effectmod ~ selection) + 
+  labs(x="Cor(W,U)", y="Proxy Strength", color="", shape="") + 
+  theme(legend.position="top") + 
+  coord_cartesian(ylim=c(0,1))
+```
+
+## Proxy Strength - Tabular Summary (by S2)
+
+### All
+
+```{r}
+library(gtsummary)
+proxystrength %>%
+  select(estimator, S2_f, rho_XY_s_A0, rho_XY_s_A1) |>
+  tbl_strata2(
+    strata = S2_f,
+    .tbl_fun =
+      ~ .x %>%
+        tbl_summary(by = estimator, 
+                    statistic = list(all_continuous() ~ "{mean} ({min},{max})"),
+                    label = list(rho_XY_s_A0 ~ "Placebo",
+                                 rho_XY_s_A1 ~ "Treatment"),
+                    digits = list(all_continuous() ~ 2)) %>%
+        add_n(),
+    .combine_with = "tbl_stack")
+```
+
+### Positive Selection on U
+
+```{r}
+proxystrength %>%
+  filter(!sel_neg_u) %>%
+  select(estimator, S2_f, rho_XY_s_A0, rho_XY_s_A1) |>
+  tbl_strata2(
+    strata = S2_f,
+    .tbl_fun =
+      ~ .x %>%
+        tbl_summary(by = estimator, 
+                    statistic = list(all_continuous() ~ "{mean} ({min},{max})"),
+                    label = list(rho_XY_s_A0 ~ "Placebo",
+                                 rho_XY_s_A1 ~ "Treatment"),
+                    digits = list(all_continuous() ~ 2)) %>%
+        add_n(),
+    .combine_with = "tbl_stack")
+```
+
+### Negative Selection on U
+
+```{r}
+proxystrength %>%
+  filter(sel_neg_u) %>%
+  select(estimator, S2_f, rho_XY_s_A0, rho_XY_s_A1) |>
+  tbl_strata2(
+    strata = S2_f,
+    .tbl_fun =
+      ~ .x %>%
+        tbl_summary(by = estimator, 
+                    statistic = list(all_continuous() ~ "{mean} ({min},{max})"),
+                    label = list(rho_XY_s_A0 ~ "Placebo",
+                                 rho_XY_s_A1 ~ "Treatment"),
+                    digits = list(all_continuous() ~ 2)) %>%
+        add_n(),
+    .combine_with = "tbl_stack")
+```

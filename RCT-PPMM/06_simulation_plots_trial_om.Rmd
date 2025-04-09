@@ -1,0 +1,98 @@
+---
+title: "Simulation - Plots - Trial and OM Estimators"
+author: "Rebecca Andridge"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=FALSE, warning=FALSE, message=FALSE, out.width='100%', fig.asp=.75)
+library(tidyverse)
+theme_set(theme_bw())
+
+# load results -----
+load("./simdata/simParms.RData")
+parms <- parms %>%
+  mutate(simset = factor(simset),
+         S2_f = factor(S2, levels = c(1,4,13), labels = c("strong proxy", "moderate proxy", "weak proxy")),
+         effectmod = factor(effectmod,
+                            levels = c("EM{U}", "EM{Z,U}", "EM{Z,W,U}")),
+         selection = factor(selection, 
+                            levels = c("SEL{U}", "SEL{Z,U}", "SEL{Z,W,U}", "SEL{Z,-U}", "SEL{Z,W,-U}")))
+load("./simresults/simSummary_truth.RData")
+load("./simresults/simSummary_trial.RData")
+load("./simresults/simSummary_PPMM_MLE.RData") # to get OM estimate
+
+# Truth
+truth <- truth %>%
+  mutate(estimator = "truth") %>%
+  rename(est = truth)
+
+# OM estimates
+om_est <- sumstats_mle %>%
+  filter(stat == "thetamean" & estimator == "trt_phi0_pla_phi0") %>%
+  select(simset, estimator, est) %>%
+  mutate(estimator = "OM")
+
+# Trial estimates
+trial_est <- sumstats_trial %>%
+  filter(stat == "thetamean") %>%
+  select(simset, estimator, est)
+
+# Stack estimates with truth
+truth_trial_om <- truth %>%
+  bind_rows(trial_est) %>%
+  bind_rows(om_est) %>%
+  arrange(simset) %>%
+  inner_join(parms) %>%
+  mutate(estimator = factor(estimator, levels = c("trial", "OM", "truth")))
+
+# Trial bias
+trial_bias <- sumstats_trial %>%
+  filter(stat == "bias") %>%
+  select(simset, estimator, est, lower, upper)
+
+# OM bias
+om_bias <- sumstats_mle %>%
+  filter(stat == "bias" & estimator == "trt_phi0_pla_phi0") %>%
+  select(simset, estimator, est, lower, upper) %>%
+  mutate(estimator = "OM")
+
+# Stack
+bias_trial_om <- bind_rows(trial_bias, om_bias) %>%
+  arrange(simset) %>%
+  inner_join(parms) %>%
+  mutate(estimator = factor(estimator, levels = c("trial", "OM")))
+
+rm(om_est, om_bias, trial_est, trial_bias, sumstats_mle, sumstats_trial, truth)
+```
+
+## Truth and Trial and OM (assumes SAR) Estimates
+
+```{r}
+truth_trial_om %>%
+  ggplot(aes(x=factor(CORR_U_W), y=est, shape=estimator, color=estimator)) + 
+  geom_point(size=0.7) +
+  scale_shape_manual(values = c(1,2,3)) + 
+  scale_color_manual(values = c("purple", "blue", "black")) + 
+  facet_grid(effectmod ~ selection) + 
+  labs(x="Cor(W,U)", y="Treatment Effect", color="", shape="") + 
+  theme(legend.position="top")
+```
+
+## Trial and OM (assumes SAR) Bias
+
+(note: error bars smaller than width of plotting points)
+
+```{r}
+bias_trial_om %>%
+  ggplot(aes(x=factor(CORR_U_W), y=est, shape=estimator, color=estimator)) + 
+  geom_hline(yintercept = 0, color = "grey50", linetype = 2) + 
+  geom_point(size=0.7) +
+  scale_shape_manual(values = c(1,2)) + 
+  scale_color_manual(values = c("purple","blue")) + 
+  geom_errorbar(aes(ymin=lower, ymax=upper), width=0.2) +
+  facet_grid(effectmod ~ selection) + 
+  labs(x="Cor(W,U)", y="Bias", color="", shape="") + 
+  theme(legend.position="top")
+```

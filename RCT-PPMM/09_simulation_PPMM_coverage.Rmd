@@ -1,0 +1,129 @@
+---
+title: "Simulation - PPMM Coverage"
+author: "Rebecca Andridge"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=FALSE, warning=FALSE, message=FALSE, out.width='100%', fig.asp=.75)
+library(tidyverse)
+theme_set(theme_bw())
+library(kableExtra)
+
+# load results -----
+load("./simdata/simParms.RData")
+load("./simresults/simSummary_PPMM_MLE_cover.RData")
+load("./simresults/simSummary_PPMM_Bayes_cover.RData")
+
+parms <- parms %>%
+  mutate(simset = factor(simset),
+         S2_f = factor(S2, levels = c(1,4,13), labels = c("strong", "moderate", "weak")),
+         effectmod = factor(effectmod,
+                            levels = c("EM{U}", "EM{Z,U}", "EM{Z,W,U}")),
+         selection = factor(selection, 
+                            levels = c("SEL{U}", "SEL{Z,U}", "SEL{Z,W,U}", "SEL{Z,-U}", "SEL{Z,W,-U}")))
+
+cover <- cover_mle %>%
+  mutate(method = "MLE") %>%
+  bind_rows(cover_bayes) %>%
+  filter(estimator != "trt:ign/pla:ign") %>%
+  mutate(method = case_when(is.na(method) ~ "Bayes", .default = method)) %>%
+  mutate(lb = cover - 1.96*sqrt(cover*(1-cover)/nsim),
+         ub = cover + 1.96*sqrt(cover*(1-cover)/nsim),
+         nonignorable = factor(estimator,
+                               levels = c("trt_phi1_pla_phi0", "trt:non/pla:ign", "trt:mod/pla:ign",
+                                          "trt_phi0_pla_phi1", "trt:ign/pla:non", "trt:ign/pla:mod"),
+                               labels = c("trt", "trt", "trt",
+                                          "pla", "pla", "pla")),
+         interval = factor(estimator, 
+                           levels = c("trt_phi1_pla_phi0", "trt:non/pla:ign", "trt:mod/pla:ign",
+                                      "trt_phi0_pla_phi1", "trt:ign/pla:non", "trt:ign/pla:mod"),
+                           labels = c("MLE Non-ignorable Treatment", "Bayes Non-ignorable Treatment", "Bayes Moderate Non-ignorable Treatment",
+                                      "MLE Non-ignorable Control", "Bayes Non-ignorable Control", "Bayes Moderate Non-ignorable Control"))) %>%
+  full_join(parms) %>%
+  arrange(simset, interval)
+
+cover_wide <- cover %>%
+  select(simset, sel_neg_u, selection, effectmod, CORR_U_W, S2_f, estimator, cover) %>%
+  pivot_wider(values_from = cover, names_from = estimator) %>%
+  arrange(selection, effectmod, CORR_U_W, S2_f)
+```
+
+# Coverage - Selection on U
+
+```{r}
+cover_wide %>%
+  filter(!sel_neg_u) %>%
+  select(selection, effectmod, CORR_U_W, S2_f,
+         trt_phi1_pla_phi0, `trt:non/pla:ign`, `trt:mod/pla:ign`) %>%
+  kbl(align = c("l","l","l","l","c","c","c"),
+      col.names = c("Selection", "Effect Modification", "Corr(U,W)", "Proxy Strength", 
+                    "MLE Non-ignorable Treatment", "Bayes Non-ignorable Treatment","Bayes Moderate Non-ignorable Treatment")) %>%
+  kable_classic(full_width=F) %>%
+  kable_styling("striped") %>%
+  collapse_rows(columns=1:4, valign="top")
+```
+
+### Corr(U,W) = 0
+```{r}
+# Plot
+pd <- position_dodge(0.5)
+g <- cover %>%
+  ggplot(aes(x=cover, y=fct_rev(S2_f), color=interval, group=interval, shape=interval)) +
+  geom_point(size=1, position=pd) +
+  geom_errorbar(aes(xmin = lb,
+                    xmax = ub), width=0.3, position=pd) +
+  geom_vline(xintercept=0.95, linetype=2) +
+  facet_grid(effectmod ~ selection) +
+  labs(y="Proxy Strength", x="Empirical Coverage", color="", shape="") +
+  theme(legend.position="top") +
+  xlim(0,1) + 
+  scale_color_brewer(palette = "Set2")
+
+g %+% filter(cover, !sel_neg_u & CORR_U_W == 0 & nonignorable == "trt")
+```
+
+### Corr(U,W) = 0.3
+```{r}
+g %+% filter(cover, !sel_neg_u & CORR_U_W == 0.3 & nonignorable == "trt")
+```
+
+# Coverage - Selection on Negative U
+
+```{r}
+cover_wide %>%
+  filter(sel_neg_u) %>%
+  arrange(selection, effectmod, CORR_U_W, S2_f) %>%
+  select(selection, effectmod, CORR_U_W, S2_f,
+         trt_phi0_pla_phi1, `trt:ign/pla:non`, `trt:ign/pla:mod`) %>%
+  kbl(align = c("l","l","l","l","c","c","c"),
+      col.names = c("Selection", "Effect Modification", "Corr(U,W)", "Proxy Strength", 
+                    "MLE Non-ignorable Control", "Bayes Non-ignorable Control","Bayes Moderate Non-ignorable Control")) %>%
+  kable_classic(full_width=F) %>%
+  kable_styling("striped") %>%
+  collapse_rows(columns=1:4, valign="top")
+
+```
+
+### Corr(U,W) = 0
+```{r}
+g %+% filter(cover, sel_neg_u & CORR_U_W == 0 & nonignorable == "pla")
+```
+
+### Corr(U,W) = 0.3
+```{r}
+g %+% filter(cover, sel_neg_u & CORR_U_W == 0.3 & nonignorable == "pla")
+```
+
+```{r}
+# export for tables in paper
+tab <- cover_wide %>%
+  select(simset,
+         selection, effectmod, CORR_U_W, S2_f,
+         trt_phi1_pla_phi0, `trt:non/pla:ign`, `trt:mod/pla:ign`,
+         trt_phi0_pla_phi1, `trt:ign/pla:non`, `trt:ign/pla:mod`)
+tab[,6:11] <- 100*tab[,6:11]
+write_csv(tab, file="./simulation_coverage.csv")
+```
+
